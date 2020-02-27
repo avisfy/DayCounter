@@ -1,12 +1,21 @@
 package com.avisfy;
 
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.time.temporal.ChronoUnit.DAYS;
 
 public class DataCalc {
-    private Calendar initDate;
-    private int initType;
+    private final LocalDate initDate;
+    private final int initType;
     public boolean errorOccurred;
 
     private static final int UNKNOWN = 0;
@@ -16,57 +25,67 @@ public class DataCalc {
     private static final int SECOND_FREE = 4;
 
 
+    private static Logger log = Logger.getLogger(DataCalc.class.getName());
+
+
     //input string format: date date_type
     public DataCalc(String inputInfo) {
         errorOccurred = false;
         String[] inpArr = inputInfo.split(" ");
+        String[] inpDate;
 
-        //case input format day_of_month.month.year type
-        if (inpArr.length == 2) {
-            initType = parseType(inpArr[1]);
-
-        } //case input format day_of_month month type
-        else if (inpArr.length == 3) {
-            initType = parseType(inpArr[2]);
-            initDate = parseDate(inpArr[0], inpArr[1]);
+        switch (inpArr.length) {
+            //case day_of_month.month.year type
+            case 2:
+                inpDate = new String[1];
+                inpDate[0] = inpArr[0];
+                initDate = parseDate(inpDate);
+                initType = parseType(inpArr[1]);
+                break;
+            //case day_of_month month type
+            case 3:
+                inpDate = new String[2];
+                inpDate[0] = inpArr[0];
+                inpDate[1] = inpArr[1];
+                initDate = parseDate(inpDate);
+                initType = parseType(inpArr[2]);
+                break;
+            //case day_of_month month year type
+            case 4:
+                inpDate = new String[3];
+                inpDate[0] = inpArr[0];
+                inpDate[1] = inpArr[1];
+                inpDate[2] = inpArr[2];
+                initDate = parseDate(inpDate);
+                initType = parseType(inpArr[3]);
+                break;
+            default:
+                initDate = LocalDate.now();
+                initType = UNKNOWN;
+                errorOccurred =  true;
         }
-
         if (errorOccurred) {
-            System.out.println("Incorrect DataCalc");
+            log.info("Failed creating DateCalc");
         }
     }
 
-    private DataCalc(Calendar day, int type) {
-        errorOccurred = false;
-        initType = type;
-        initDate = (Calendar) day.clone();
-    }
 
-
-    private Calendar getInitDate() {
+    private LocalDate getInitDate() {
         return initDate;
     }
 
 
     public String typeOfDay(String strDate) {
         String[] dateArr = strDate.split(" ");
-        Calendar targetDate = parseDate(dateArr[0], dateArr[1]);
-        DataCalc dateCount = new DataCalc (initDate, initType);
-        if (dateCount.errorOccurred)
-            return "Error in typeOfDay";
-
-        while (targetDate.after(dateCount.getInitDate())) {
-            dateCount.nextDay();
-            //System.out.println(dateCount.getStringDate() + " " + dateCount.getStringType());
+        LocalDate targetDate = parseDate(dateArr);
+        Long daysDiff = DAYS.between(initDate, targetDate);
+        int calcType = initType;
+        for (long i = 0; i < daysDiff; i++) {
+            calcType = (calcType == SECOND_FREE) ? IN_DAY : calcType + 1;
         }
-        return dateCount.getStringDate() + " " + dateCount.getStringType();
+        DateTimeFormatter outFormat = DateTimeFormatter.ofPattern("d MMM uuuu EEE");
+        return targetDate.format(outFormat) + " " + getStringType(calcType);
     }
-
-    private void nextDay() {
-        initDate.add(Calendar.DATE, 1);
-        initType = (initType == SECOND_FREE) ? IN_DAY : initType + 1;
-    }
-
 
     private int parseType(String type) {
         switch (type) {
@@ -79,77 +98,113 @@ public class DataCalc {
             case "выходной":
                 return  SECOND_FREE;
             default :
-                System.out.println("Error in parseType, inp type");
+                log.info("Can't parse type from string");
                 errorOccurred = true;
                 return  UNKNOWN;
         }
     }
 
-    //date format day_of_month month
-    private Calendar parseDate(String strDay, String strMonth) {
-        int day = -1;
-        int month = -1;
-        int year = Calendar.getInstance().get(Calendar.YEAR);
-        switch (strMonth) {
-            case "января":
-                month = Calendar.JANUARY;
-            break;
-            case "февраля":
-                month = Calendar.FEBRUARY;
-                break;
-            case "марта":
-                month = Calendar.MARCH;
-                break;
-            case "апреля":
-                month = Calendar.APRIL;
-                break;
-            case "мая":
-                month = Calendar.MAY;
-                break;
-            case "июня":
-                month = Calendar.JUNE;
-                break;
-            case "июля":
-                month = Calendar.JULY;
-                break;
-            case "августа":
-                month = Calendar.AUGUST;
-                break;
-            case "сентября":
-                month = Calendar.SEPTEMBER;
-                break;
-            case "октября":
-                month = Calendar.OCTOBER;
-                break;
-            case "ноября":
-                month = Calendar.NOVEMBER;
-                break;
-            case "декабря":
-                month = Calendar.DECEMBER;
-                break;
-            default:
-                errorOccurred = true;
-                System.out.println("Error in setDate: month");
-        }
+    private LocalDate parseDate(String[] strDate) {
+        int day;
+        Month month;
+        int year;
+        String strDay;
+        String strMonth;
+        String strYear = "";
         try {
+            switch (strDate.length) {
+                //day.month.year
+                case 1:
+                    DateTimeFormatter pointedFormat = DateTimeFormatter.ofPattern("dd.MM.yyy");
+                    return LocalDate.parse(strDate[0].subSequence(0, strDate[0].length()), pointedFormat);
+                //day month(text)
+                case 2:
+                    strDay = strDate[0];
+                    strMonth = strDate[1];
+                    break;
+                //day month(text) year
+                case 3:
+                    strDay = strDate[0];
+                    strMonth = strDate[1];
+                    strYear = strDate[2];
+                    break;
+                default:
+                    log.info("Can't parse date in this format");
+                    errorOccurred = true;
+                    return LocalDate.now();
+            }
+
+            switch (strMonth) {
+                case "января":
+                    month = Month.JANUARY;
+                    break;
+                case "февраля":
+                    month = Month.FEBRUARY;
+                    break;
+                case "марта":
+                    month = Month.MARCH;
+                    break;
+                case "апреля":
+                    month = Month.APRIL;
+                    break;
+                case "мая":
+                    month = Month.MAY;
+                    break;
+                case "июня":
+                    month = Month.JUNE;
+                    break;
+                case "июля":
+                    month = Month.JULY;
+                    break;
+                case "августа":
+                    month = Month.AUGUST;
+                    break;
+                case "сентября":
+                    month = Month.SEPTEMBER;
+                    break;
+                case "октября":
+                    month = Month.OCTOBER;
+                    break;
+                case "ноября":
+                    month = Month.NOVEMBER;
+                    break;
+                case "декабря":
+                    month = Month.DECEMBER;
+                    break;
+                default:
+                    errorOccurred = true;
+                    log.info("Unknown month in date parsing");
+                    return LocalDate.now();
+            }
+
             day = Integer.parseInt(strDay);
+            if (strDate.length == 3) {
+                year = Integer.parseInt(strYear);
+            } else
+            {
+                year = LocalDate.now().getYear();
+            }
+            return LocalDate.of(year, month, day);
         } catch (NumberFormatException e) {
-            day = -1;
             errorOccurred = true;
-            System.out.println("Error in setDate: day");
-        }
-        if ((day != -1) && (month != -1)) {
-            Calendar calendar = new GregorianCalendar(year, month, day);
-            calendar.setFirstDayOfWeek(Calendar.MONDAY);
-            return calendar;
-        } else {
+            log.log(Level.SEVERE, "Failed to parse current day or year: ", e);
+            return LocalDate.now();
+        } catch (DateTimeParseException e) {
             errorOccurred = true;
-            return Calendar.getInstance();
+            log.log(Level.SEVERE, "Failed to parse pointed date: ", e);
+            return LocalDate.now();
+        } catch (DateTimeException e) {
+            errorOccurred = true;
+            log.log(Level.SEVERE, "Failed to create LocalDate from input: ", e);
+            return LocalDate.now();
+        } catch (IllegalArgumentException e) {
+            log.log(Level.INFO, "Error date parse pattern : ", e);
+            return LocalDate.now();
         }
     }
 
-    private String getStringType() {
-        switch (initType) {
+    private String getStringType(int type) {
+        switch (type) {
             case IN_DAY:
                 return  "день";
             case IN_NIGHT:
@@ -159,13 +214,9 @@ public class DataCalc {
             case SECOND_FREE:
                 return "выходной";
             default :
-                System.out.println("Error in printStringType, inp type");
+                log.fine("Can't get string type");
                 return "";
         }
     }
 
-    private String getStringDate() {
-        String answer = initDate.get(Calendar.DATE) + " " + initDate.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.ROOT) + " " + initDate.get(Calendar.YEAR) + ",  " + initDate.getDisplayName(Calendar.DAY_OF_WEEK, Calendar. LONG, Locale.ROOT );
-        return answer;
-    }
 }
