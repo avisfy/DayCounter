@@ -1,12 +1,10 @@
 package com.avisfy;
 
 import java.time.DateTimeException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,8 +22,9 @@ public class DataCalc {
     private static final int FIRST_FREE = 3;
     private static final int SECOND_FREE = 4;
     private static final Locale loc = new Locale("ru","RU");
-    private static final DateTimeFormatter outForm = DateTimeFormatter.ofPattern("d MMM uuuu EEE", loc);
-    private static final  DateTimeFormatter pointedFormat = DateTimeFormatter.ofPattern("d.M.yy", loc);
+    private static final DateTimeFormatter outForm = DateTimeFormatter.ofPattern("EEE d MMM uuuu", loc);
+    private static final DateTimeFormatter outFormS = DateTimeFormatter.ofPattern("EEE d MMM uu", loc);
+    private static final  DateTimeFormatter pointedForm = DateTimeFormatter.ofPattern("d.M.yy", loc);
     private static final  DateTimeFormatter textFormL = DateTimeFormatter.ofPattern("d MMMM yyyy", loc);
     private static final  DateTimeFormatter textFormS  = DateTimeFormatter.ofPattern("d MMMM yy", loc);
 
@@ -86,7 +85,30 @@ public class DataCalc {
             errorOccurred =  false;
             return "";
         }
-        long daysDiff = DAYS.between(initDate, targetDate);
+        return targetDate.format(outForm) + " " + getStrType(calcType(targetDate));
+    }
+
+    public String daysNextWeek() {
+        if (errorOccurred) {
+            return "";
+        }
+        LocalDate today = LocalDate.now();
+        while (today.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            today =  today.plusDays(1);
+        }
+        int typeToday = calcType(today);
+        StringBuffer answer = new StringBuffer("");
+        for (long i = 0; i < 7; i++) {
+            today =  today.plusDays(1);
+            typeToday = (typeToday  == SECOND_FREE) ? IN_DAY : typeToday  + 1;
+            answer.append(today.format(outFormS) + "   " + getStrType(typeToday) + "\n");
+        }
+
+        return answer.toString();
+    }
+
+    private int calcType(LocalDate date) {
+        long daysDiff = DAYS.between(initDate, date);
         int calcType = initType;
         /*for (long i = 0; i < daysDiff; i++) {
             calcType = (calcType == SECOND_FREE) ? IN_DAY : calcType + 1;
@@ -95,9 +117,8 @@ public class DataCalc {
         for (long i = 0; i < part; i++) {
             calcType = (calcType == SECOND_FREE) ? IN_DAY : calcType + 1;
         }
-        return targetDate.format(outForm) + " " + getStringType(calcType);
+        return calcType;
     }
-
 
     private int parseType(String type) {
         switch (type) {
@@ -123,7 +144,7 @@ public class DataCalc {
             switch (arrDate.length) {
                 //day.month.year
                 case 1:
-                    return LocalDate.parse(arrDate[0].subSequence(0, arrDate[0].length()), pointedFormat);
+                    return LocalDate.parse(arrDate[0].subSequence(0, arrDate[0].length()), pointedForm);
                 //day month(text)
                 case 2:
                     strDate  = arrDate[0] + " " + arrDate[1] + " " + LocalDate.now().getYear();
@@ -156,7 +177,7 @@ public class DataCalc {
         }
     }
 
-    private static String getStringType(int type) {
+    private static String getStrType(int type) {
         switch (type) {
             case IN_DAY:
                 return  "день";

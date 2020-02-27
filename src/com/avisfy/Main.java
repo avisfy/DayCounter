@@ -32,6 +32,7 @@ public class Main {
 				inpStr = inpStr.substring(i + 1);
 			} else {
 				operation = inpStr;
+				inpStr = "";
 			}
 			switch(operation) {
 				case "/init":
@@ -49,8 +50,13 @@ public class Main {
 						System.out.println("Error, /init first");
 					}
 					break;
-				case "/in_week":
-					System.out.println("in_week");
+				case "/next_week":
+					if (calc !=  null) {
+						String res = calc.daysNextWeek();
+						System.out.println(res);
+					} else {
+						System.out.println("Error, /init first");
+					}
 					break;
 				case "exit":
 					isExit = false;
