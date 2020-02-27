@@ -14,12 +14,6 @@ public class Main {
 		String operation;
 		DataCalc calc =  null;
 		boolean isExit = true;
-		//String inps = in.nextLine();
-		//LocalDate test;
-		//DateTimeFormatter inf = DateTimeFormatter.ofPattern("dd MMMM yy", new Locale("ru","RU"));
-		//DateTimeFormatter outf = DateTimeFormatter.ofPattern("dd.MM.yyyy", new Locale("ru","RU"));
-		//test = LocalDate.parse(inps, inf);
-		//System.out.println(test.format(outf));
 
 		System.out.println("Set initial date");
 
@@ -53,6 +47,14 @@ public class Main {
 				case "/next_week":
 					if (calc !=  null) {
 						String res = calc.daysNextWeek();
+						System.out.println(res);
+					} else {
+						System.out.println("Error, /init first");
+					}
+					break;
+				case "/month":
+					if (calc !=  null) {
+						String res = calc.month(inpStr);
 						System.out.println(res);
 					} else {
 						System.out.println("Error, /init first");

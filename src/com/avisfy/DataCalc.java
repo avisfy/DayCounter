@@ -3,6 +3,7 @@ package com.avisfy;
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -98,7 +99,7 @@ public class DataCalc {
         }
         int typeToday = calcType(today);
         StringBuffer answer = new StringBuffer("");
-        for (long i = 0; i < 7; i++) {
+        for (int i = 0; i < 7; i++) {
             today =  today.plusDays(1);
             typeToday = (typeToday  == SECOND_FREE) ? IN_DAY : typeToday  + 1;
             answer.append(today.format(outFormS) + "   " + getStrType(typeToday) + "\n");
@@ -107,17 +108,40 @@ public class DataCalc {
         return answer.toString();
     }
 
+    public String month(String strMonth) {
+        try {
+            if (errorOccurred) {
+                return "";
+            }
+            String[] mstr = new String[2];
+            mstr[0] = "1";
+            mstr[1] = strMonth;
+            StringBuffer answer = new StringBuffer("");
+            LocalDate monthDay = parseDate(mstr);
+            int typeToday = calcType(monthDay);
+            answer.append(monthDay.getDayOfMonth() + " " + getStrType(typeToday));
+            return answer.toString();
+        } catch (IllegalArgumentException e ) {
+            log.log(Level.SEVERE, "Failed to parse month: ", e);
+            return "";
+        } catch (NullPointerException e ) {
+            log.log(Level.SEVERE, "Month string is null: ", e);
+            return "";
+        }
+
+    }
+
     private int calcType(LocalDate date) {
-        long daysDiff = DAYS.between(initDate, date);
-        int calcType = initType;
+        int daysDiff = (int) DAYS.between(initDate, date);
+        int type = initType;
         /*for (long i = 0; i < daysDiff; i++) {
-            calcType = (calcType == SECOND_FREE) ? IN_DAY : calcType + 1;
+            type = (type == SECOND_FREE) ? IN_DAY : type + 1;
         }*/
         int part  = (int)daysDiff % 4;
-        for (long i = 0; i < part; i++) {
-            calcType = (calcType == SECOND_FREE) ? IN_DAY : calcType + 1;
+        for (int i = 0; i < part; i++) {
+            type = (type == SECOND_FREE) ? IN_DAY : type + 1;
         }
-        return calcType;
+        return type;
     }
 
     private int parseType(String type) {
