@@ -1,5 +1,8 @@
 package com.avisfy;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Scanner;
 import com.avisfy.DataCalc;
 
@@ -11,6 +14,13 @@ public class Main {
 		String operation;
 		DataCalc calc =  null;
 		boolean isExit = true;
+		//String inps = in.nextLine();
+		//LocalDate test;
+		//DateTimeFormatter inf = DateTimeFormatter.ofPattern("dd MMMM yy", new Locale("ru","RU"));
+		//DateTimeFormatter outf = DateTimeFormatter.ofPattern("dd.MM.yyyy", new Locale("ru","RU"));
+		//test = LocalDate.parse(inps, inf);
+		//System.out.println(test.format(outf));
+
 		System.out.println("Set initial date");
 
 		do{
@@ -20,7 +30,6 @@ public class Main {
 			if ((i =  inpStr.indexOf(" ")) >= 0) {
 				operation = inpStr.substring(0, i);
 				inpStr = inpStr.substring(i + 1);
-				System.out.println(operation + inpStr);
 			} else {
 				operation = inpStr;
 			}
