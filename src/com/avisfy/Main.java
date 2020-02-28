@@ -16,6 +16,8 @@ public class Main {
 		boolean isExit = true;
 
 		System.out.println("Set initial date");
+		//test
+		//calc = new DataCalc("22 февраля ночь");
 
 		do{
 			System.out.print("> ");
@@ -36,9 +38,17 @@ public class Main {
 						calc = null;
 					}
 					break;
-				case "/in_day":
+				case "/day":
 					if (calc !=  null) {
 						String res = calc.typeOfDay(inpStr);
+						System.out.println(res);
+					} else {
+						System.out.println("Error, /init first");
+					}
+					break;
+				case "/day_week":
+					if (calc !=  null) {
+						String res = calc.daysWeek(inpStr);
 						System.out.println(res);
 					} else {
 						System.out.println("Error, /init first");

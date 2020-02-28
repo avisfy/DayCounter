@@ -10,7 +10,9 @@ import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.Math.abs;
 import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.WEEKS;
 
 public class DataCalc {
     private final LocalDate initDate;
@@ -23,8 +25,7 @@ public class DataCalc {
     private static final int FIRST_FREE = 3;
     private static final int SECOND_FREE = 4;
     private static final Locale loc = new Locale("ru","RU");
-    private static final DateTimeFormatter outForm = DateTimeFormatter.ofPattern("EEE d MMM uuuu", loc);
-    private static final DateTimeFormatter outFormS = DateTimeFormatter.ofPattern("EEE d MMM uu", loc);
+    private static final DateTimeFormatter outForm = DateTimeFormatter.ofPattern("EEE d MMM uu", loc);
     private static final  DateTimeFormatter pointedForm = DateTimeFormatter.ofPattern("d.M.yy", loc);
     private static final  DateTimeFormatter textFormL = DateTimeFormatter.ofPattern("d MMMM yyyy", loc);
     private static final  DateTimeFormatter textFormS  = DateTimeFormatter.ofPattern("d MMMM yy", loc);
@@ -93,33 +94,60 @@ public class DataCalc {
         if (errorOccurred) {
             return "";
         }
-        LocalDate today = LocalDate.now();
-        while (today.getDayOfWeek() != DayOfWeek.SUNDAY) {
-            today =  today.plusDays(1);
+        LocalDate targetDate = LocalDate.now();
+        //find first day of next week
+        while (targetDate.getDayOfWeek() != DayOfWeek.MONDAY) {
+            targetDate =  targetDate.plusDays(1);
         }
-        int typeToday = calcType(today);
-        StringBuffer answer = new StringBuffer("");
-        for (int i = 0; i < 7; i++) {
-            today =  today.plusDays(1);
-            typeToday = (typeToday  == SECOND_FREE) ? IN_DAY : typeToday  + 1;
-            answer.append(today.format(outFormS) + "   " + getStrType(typeToday) + "\n");
-        }
-
-        return answer.toString();
+        return getWeek(targetDate);
     }
 
+    public String daysWeek(String strDate) {
+        if (errorOccurred) {
+            return "";
+        }
+        String[] dateArr = strDate.split(" ");
+        LocalDate targetDate = parseDate(dateArr);
+        if (errorOccurred) {
+            errorOccurred =  false;
+            return "";
+        }
+        //find first day of this week
+        while (targetDate.getDayOfWeek() != DayOfWeek.MONDAY) {
+            targetDate =  targetDate.minusDays(1);
+        }
+        return getWeek(targetDate);
+    }
+
+
     public String month(String strMonth) {
+        if (errorOccurred) {
+            return "";
+        }
         try {
+            LocalDate monthDay = parseMonth(strMonth);
             if (errorOccurred) {
+                errorOccurred =  false;
                 return "";
             }
-            String[] mstr = new String[2];
-            mstr[0] = "1";
-            mstr[1] = strMonth;
-            StringBuffer answer = new StringBuffer("");
-            LocalDate monthDay = parseDate(mstr);
-            int typeToday = calcType(monthDay);
-            answer.append(monthDay.getDayOfMonth() + " " + getStrType(typeToday));
+            StringBuilder answer = new StringBuilder(strMonth + "\n");
+            int i = 7 - DayOfWeek.SUNDAY.compareTo(monthDay.getDayOfWeek()) - 1;
+            for (int j = 0; j < i; j++) {
+                answer.append("             ");
+            }
+            Month month = monthDay.getMonth();
+            while (monthDay.getMonth() == month)  {
+                i++;
+                if (monthDay.getDayOfMonth() < 10) {
+                    answer.append(monthDay.getDayOfMonth() + " " + getStrType(calcType(monthDay)) + "   ");
+                } else {
+                    answer.append(monthDay.getDayOfMonth() + " " + getStrType(calcType(monthDay)) + "  ");
+                }
+                monthDay = monthDay.plusDays(1);
+                if (i % 7 == 0) {
+                    answer.append("\n");
+                }
+            }
             return answer.toString();
         } catch (IllegalArgumentException e ) {
             log.log(Level.SEVERE, "Failed to parse month: ", e);
@@ -131,15 +159,31 @@ public class DataCalc {
 
     }
 
+    private String getWeek(LocalDate beginDate) {
+        int typeToday;
+        StringBuffer answer = new StringBuffer("");
+        for (int i = 0; i < 7; i++) {
+            typeToday = calcType(beginDate);
+            answer.append(beginDate.format(outForm) + "   " + getStrType(typeToday) + "\n");
+            beginDate =  beginDate.plusDays(1);
+        }
+        return answer.toString();
+    }
+
     private int calcType(LocalDate date) {
         int daysDiff = (int) DAYS.between(initDate, date);
         int type = initType;
-        /*for (long i = 0; i < daysDiff; i++) {
-            type = (type == SECOND_FREE) ? IN_DAY : type + 1;
-        }*/
         int part  = (int)daysDiff % 4;
-        for (int i = 0; i < part; i++) {
-            type = (type == SECOND_FREE) ? IN_DAY : type + 1;
+        if (daysDiff > 0) {
+            for (int i = 0; i < part; i++) {
+                type = (type == SECOND_FREE) ? IN_DAY : type + 1;
+            }
+        } else //if initial date > date
+            {
+            System.out.println("in rev");
+            for (int i = 0; i < -part; i++) {
+                type = (type == IN_DAY) ? SECOND_FREE: type - 1;
+            }
         }
         return type;
     }
@@ -159,6 +203,53 @@ public class DataCalc {
                 errorOccurred = true;
                 return  UNKNOWN;
         }
+    }
+
+    private LocalDate parseMonth(String strMonth) {
+        Month month;
+        switch (strMonth) {
+            case "январь":
+                month = Month.JANUARY;
+                break;
+            case "февраль":
+                month = Month.FEBRUARY;
+                break;
+            case "март":
+                month = Month.MARCH;
+                break;
+            case "апрель":
+                month = Month.APRIL;
+                break;
+            case "май":
+                month = Month.MAY;
+                break;
+            case "июнь":
+                month = Month.JUNE;
+                break;
+            case "июль":
+                month = Month.JULY;
+                break;
+            case "август":
+                month = Month.AUGUST;
+                break;
+            case "сентябрь":
+                month = Month.SEPTEMBER;
+                break;
+            case "октябрь":
+                month = Month.OCTOBER;
+                break;
+            case "ноябрь":
+                month = Month.NOVEMBER;
+                break;
+            case "декабрь":
+                month = Month.DECEMBER;
+                break;
+            default:
+                errorOccurred = true;
+                log.info("Unknown month in date parsing");
+                return LocalDate.now();
+        }
+        return LocalDate.of(initDate.getYear(), month, 1);
     }
 
     private LocalDate parseDate(String[] arrDate) {
@@ -204,9 +295,9 @@ public class DataCalc {
     private static String getStrType(int type) {
         switch (type) {
             case IN_DAY:
-                return  "день";
+                return  "день    ";
             case IN_NIGHT:
-                return  "ночь";
+                return  "ночь    ";
             case FIRST_FREE:
                 return  "отсыпной";
             case SECOND_FREE:
